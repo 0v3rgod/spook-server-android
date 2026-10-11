@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Icone adaptativo. O launcher desenha a mascara (circulo/quadrado
+  arredondado) sozinho, entao o app ja aparece arredondado no celular sem
+  nenhum formato nosso: aqui so entram as camadas.
+
+  background = a cor chapada medida da propria arte (#000009)
+  foreground = a spiral reduzida para os 72dp centrais (a safe zone)
+  monochrome = a mesma arte em alfa, para o icone tematico do Android 13+
+-->
+<adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
+    <background android:drawable="@color/ic_launcher_background" />
+    <foreground android:drawable="@drawable/ic_launcher_foreground" />
+    <monochrome android:drawable="@drawable/ic_launcher_monochrome" />
+</adaptive-icon>

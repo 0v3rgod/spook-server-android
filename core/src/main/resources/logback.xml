@@ -1,0 +1,9 @@
+<configuration>
+    <appender name="stdout" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder><pattern>%d{HH:mm:ss} %-5level %logger{24} - %msg%n</pattern></encoder>
+    </appender>
+    <!-- o HubServer usa LoggerFactory.getLogger("spook.server"), nao o nome da classe -->
+    <logger name="spook.server" level="INFO"/>
+    <logger name="io.ktor" level="INFO"/>
+    <root level="WARN"><appender-ref ref="stdout"/></root>
+</configuration>

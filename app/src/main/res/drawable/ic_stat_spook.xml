@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Icone pequeno da notificacao. O Android desenha a mascara dele em uma unica
+  cor (branco), entao o drawable precisa ser so silhueta, sem gradiente.
+  Tres "unidades" empilhadas = o servidor.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24"
+    android:tint="#FFFFFF">
+
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,4h16a1,1 0 0 1 1,1v3a1,1 0 0 1 -1,1h-16a1,1 0 0 1 -1,-1v-3a1,1 0 0 1 1,-1z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,9.5h16a1,1 0 0 1 1,1v3a1,1 0 0 1 -1,1h-16a1,1 0 0 1 -1,-1v-3a1,1 0 0 1 1,-1z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M4,15h16a1,1 0 0 1 1,1v3a1,1 0 0 1 -1,1h-16a1,1 0 0 1 -1,-1v-3a1,1 0 0 1 1,-1z" />
+
+    <!-- o "LED" de status, furado no meio da primeira unidade -->
+    <path
+        android:fillColor="#000000"
+        android:pathData="M7,6.5m-1,0a1,1 0 1,0 2,0a1,1 0 1,0 -2,0" />
+</vector>

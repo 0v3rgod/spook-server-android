@@ -1,0 +1,24 @@
+# Gradle / Kotlin
+.gradle/
+.kotlin/
+build/
+*/build/
+gradle-app.setting
+!gradle-wrapper.jar
+
+# Android local / IDE
+local.properties
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Python (tools)
+__pycache__/
+*.pyc
+
+# Secrets
+.env
+*.jks
+*.keystore

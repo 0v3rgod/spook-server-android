@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">SPOOK</string>
+    <string name="notif_title">SPOOK SERVER</string>
+    <string name="notif_parado">parado</string>
+</resources>

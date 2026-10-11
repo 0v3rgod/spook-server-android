@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- A cor de fundo e a MESMA medida da arte do icone (#000009), para a
+         janela abrir na cor da spiral em vez de um cinza de sistema. -->
+    <style name="Theme.Spook" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#000009</item>
+        <item name="android:navigationBarColor">#000009</item>
+        <item name="android:windowBackground">#000009</item>
+    </style>
+</resources>
