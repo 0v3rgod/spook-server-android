@@ -117,6 +117,8 @@ internal suspend fun ApplicationCall.apagarRelatorios(hub: Hub) {
             put("ok", true)
             put("apagados", apagados)
             put("falhas", falhas)
+            // O app (RelatoriosClient) le "total"; o relay antigo respondia isso.
+            put("total", apagados)
         }.toString(),
         ContentType.Application.Json,
     )

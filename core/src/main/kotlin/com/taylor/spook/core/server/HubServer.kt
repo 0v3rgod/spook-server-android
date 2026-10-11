@@ -144,6 +144,16 @@ class HubServer(
                 post("/api/upload") { call.upload(hub) }
                 get("/api/media") { call.listarMedia(hub) }
                 get("/api/media/{nome}") { call.baixarMedia(hub, call.parameters["nome"].orEmpty()) }
+
+                // ---- rotas compativeis com o relay Oracle (sem /api) ----
+                // O app PentestLink, o overlay e o fallback do Termux falam os
+                // caminhos do relay; servindo os dois o cliente so troca o IP.
+                post("/upload") { call.upload(hub) }
+                get("/media") { call.listarMedia(hub) }
+                get("/media/{nome}") { call.baixarMedia(hub, call.parameters["nome"].orEmpty()) }
+                get("/relatorios") { call.listarRelatorios(hub) }
+                delete("/relatorios") { call.apagarRelatorios(hub) }
+                get("/relatorios/{nome}") { call.baixarRelatorio(hub, call.parameters["nome"].orEmpty()) }
                 // respond(JsonObject) sem ContentNegotiation responde 406: nao ha
                 // conversor instalado. Serializamos na mao.
                 // Backup sem Drive: tudo que o hub tem, em um JSON. E o
