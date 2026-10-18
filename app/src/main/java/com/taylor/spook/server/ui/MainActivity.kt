@@ -52,29 +52,47 @@ import com.taylor.spook.server.SpookService
 import com.taylor.spook.server.ui.tema.Cor
 import com.taylor.spook.server.ui.tema.TemaSpook
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 class MainActivity : ComponentActivity() {
+
+    /**
+     * O app e' launcher (categoria HOME no manifest), entao o sistema reusa
+     * ESTA instancia quando o usuario aperta Home em outro app: sem isto ele
+     * voltaria pra aba em que estava. Incrementa e a tela volta pro INICIO.
+     */
+    private val voltarParaInicio = MutableStateFlow(0)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent { TemaSpook { Tela() } }
+        setContent { TemaSpook { Tela(voltarParaInicio) } }
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        voltarParaInicio.value += 1
     }
 }
 
 private enum class Aba(val titulo: String) {
-    PAINEL("PAINEL"), CHAT("CHAT"), TASKS("TASKS"), AJUSTES("AJUSTES")
+    INICIO("INICIO"), PAINEL("PAINEL"), CHAT("CHAT"), TASKS("TASKS"), AJUSTES("AJUSTES")
 }
 
 @Composable
-private fun Tela() {
+private fun Tela(voltaParaInicio: StateFlow<Int>) {
     val ctx = LocalContext.current
     val servidor = remember(ctx) { Servidor.de(ctx) }
     val escopo = rememberCoroutineScope()
     val estado by servidor.estado.collectAsState()
-    var aba by remember { mutableStateOf(Aba.PAINEL) }
+    var aba by remember { mutableStateOf(Aba.INICIO) }
+
+    val volta by voltaParaInicio.collectAsState()
+    LaunchedEffect(volta) { if (volta > 0) aba = Aba.INICIO }
 
     LaunchedEffect(estado.rodando) {
         while (estado.rodando) {
@@ -124,6 +142,7 @@ private fun Tela() {
                 .fillMaxWidth()
         ) {
             when (aba) {
+                Aba.INICIO -> AbaInicio(servidor)
                 Aba.PAINEL -> Painel(ctx, estado, servidor) {
                     escopo.launch { servidor.mandarMensagem("ping do painel") }
                 }

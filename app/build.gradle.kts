@@ -16,8 +16,8 @@ android {
         // 26 = java.util.Base64 (usado no sid) + icone adaptativo
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1-proto"
+        versionCode = 4
+        versionName = "0.3.1-launcher"
     }
 
     buildTypes {

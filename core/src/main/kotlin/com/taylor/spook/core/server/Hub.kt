@@ -184,7 +184,7 @@ class Hub(
                 val m = Mensagem(
                     id = texto(o, "id") ?: UUID.randomUUID().toString(),
                     texto = corpo,
-                    autor = texto(o, "autor"),
+                    autor = texto(o, "autor") ?: texto(o, "from"),
                     tipo = texto(o, "tipo") ?: "texto",
                     ts = agora(),
                 )
@@ -567,10 +567,15 @@ class Hub(
         put("id", m.id)
         put("texto", m.texto)
         m.autor?.let { put("autor", it) }
+        put("from", m.autor ?: "android")
         put("tipo", m.tipo)
         put("iso", iso(m.ts))
         put("ts", m.ts.toLong() * 1000)
         m.extra?.let { put("extra", it) }
+        // O app (TelaHub/HubStore.deMap) e o overlay (spook-overlay.py) leem
+        // "arquivo" NO TOPO do objeto; o upload so grava em extra. Se continuar
+        // so em extra, a mensagem chega sem arquivo e o anexo nao aparece.
+        m.extra?.get("arquivo")?.let { put("arquivo", it) }
     }
 
     fun taskJson(t: Task) = buildJsonObject {

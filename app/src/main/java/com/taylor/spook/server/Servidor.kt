@@ -150,11 +150,12 @@ class Servidor(private val ctx: Context) {
                 val tasks = s.tasks().size
                 Registro.i("banco pronto: $mensagens mensagens, $tasks tasks")
 
-                val infos = infoSistema()
                 val h = Hub(
                     store = s,
                     tokenValido = { it == token },
-                    infoSistema = { infos },
+                    // Lambdas que reavalia: o snapshot fixo frozenava bateria e
+                    // uptime no valor do startup (uptime_s saia sempre 0).
+                    infoSistema = { infoSistema() },
                     verificarSenha = { senha -> if (verificarSenha(senha)) token else null },
                     definirSenha = { senha -> definirSenha(senha) },
                     ia = Ia(chaveGroq, modeloGroq),
@@ -443,7 +444,7 @@ class Servidor(private val ctx: Context) {
     }
 
     companion object {
-        const val VERSAO = "0.1-proto"
+        const val VERSAO = "0.3.1-launcher"
         const val PORTA_PADRAO = 5000
 
         @Volatile

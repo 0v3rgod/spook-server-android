@@ -48,6 +48,8 @@ import java.security.SecureRandom
 import kotlinx.coroutines.runBlocking
 import java.util.Base64
 import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
@@ -77,6 +79,19 @@ class HubServer(
     private val log = LoggerFactory.getLogger("spook.server")
     private val sessions = ConcurrentHashMap<String, Session>()
     private val random = SecureRandom()
+
+    /**
+     * Heartbeat do Engine.IO v4: quem pinga e' o SERVIDOR ("2" a cada
+     * pingInterval, o cliente responde "3"). O HubServer respondia o ping do
+     * cliente, mas nunca mandava o dele -- e como o handshake anuncia
+     * pingInterval + pingTimeout, todo cliente esperava 45s, abortava com
+     * "Server has stopped communicating" e reconectava. No celular isso dava
+     * uma sessao nova a cada ~40s (app, bridge do Arch e overlay em loop).
+     */
+    private val heartbeat: java.util.concurrent.ScheduledExecutorService =
+        Executors.newSingleThreadScheduledExecutor { r ->
+            Thread(r, "spook-heartbeat").apply { isDaemon = true }
+        }
 
     private var engine: io.ktor.server.engine.EmbeddedServer<*, *>? = null
 
@@ -175,12 +190,36 @@ class HubServer(
                 post("/api/auth/senha") { call.definirSenhaWeb(hub) }
             }
         }.also { it.start(wait = false) }
+        heartbeat.scheduleAtFixedRate(::bater, pingIntervalMs, pingIntervalMs, TimeUnit.MILLISECONDS)
         return this
     }
 
     fun parar() {
+        heartbeat.shutdownNow()
         sessions.values.toList().forEach { fechar(it.engineSid) }
         engine?.stop(500, 500)
+    }
+
+    /**
+     * Um tick do heartbeat. Manda PING em toda sessao viva e derruba a que
+     * ficou muda -- mas so a de polling: o websocket fecha o fluxo na hora em
+     * que o socket morre (o `fechar` do upgrade cuida disso), enquanto no
+     * polling um cliente que sumiu deixa o long-poll pendurado e nada avisa.
+     */
+    private fun bater() {
+        val agora = System.currentTimeMillis()
+        for (s in sessions.values.toList()) {
+            if (!s.upgraded && agora - s.ultimaAtividade > pingIntervalMs + pingTimeoutMs) {
+                log.info(
+                    "[TIMEOUT] {} em polling sem sinal ha {}s",
+                    s.engineSid,
+                    (agora - s.ultimaAtividade) / 1000,
+                )
+                fechar(s.engineSid)
+            } else {
+                s.send(EngineIoPacket(EngineIoType.PING))
+            }
+        }
     }
 
 private fun abrirPacket(sid: String): EngineIoPacket {
@@ -231,6 +270,9 @@ private fun abrirPacket(sid: String): EngineIoPacket {
             responder(listOf(EngineIoPacket(EngineIoType.CLOSE)))
             return
         }
+        // O long-poll em si e' sinal de vida: um cliente em polling que morreu
+        // para de pedir, e e' assim que o heartbeat descobre (nao ha pacote).
+        s.marcarAtividade()
 
         // long-poll: ate 20s por pacote, senao devolve NOOP para o cliente voltar
         val lote = withTimeoutOrNull(20_000) {
@@ -251,6 +293,7 @@ private fun abrirPacket(sid: String): EngineIoPacket {
             return
         }
         sessions[sid]?.let { s ->
+            s.marcarAtividade()
             for (pkt in decodePackets(corpo)) {
                 when (pkt.type) {
                     EngineIoType.MESSAGE -> SocketIoPacket.decode(pkt.data ?: "")?.let { hub.entrada(s, it) }
@@ -312,6 +355,7 @@ private fun abrirPacket(sid: String): EngineIoPacket {
         for (frame in incoming) {
             val texto = (frame as? Frame.Text)?.readText() ?: continue
             log.debug("[WS ] sid={} bytes={}", sess.engineSid, texto.length)
+            sess.marcarAtividade()
             for (pkt in decodePackets(texto)) {
                 when (pkt.type) {
                     // "2probe" -> "3probe": o PONG precisa ecoar o data, senao o

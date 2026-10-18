@@ -9,8 +9,8 @@ import io.ktor.http.content.PartData
 import io.ktor.http.content.forEachPart
 import io.ktor.server.application.ApplicationCall
 import io.ktor.server.request.receiveMultipart
-import io.ktor.utils.io.core.readText
 import io.ktor.utils.io.readRemaining
+import kotlinx.io.asInputStream
 import io.ktor.server.response.header
 import io.ktor.server.response.respondBytes
 import io.ktor.server.response.respondText
@@ -187,11 +187,12 @@ internal suspend fun ApplicationCall.upload(hub: Hub) {
         when (parte) {
             is PartData.FileItem -> {
                 nomeArquivo = parte.originalFileName.orEmpty()
-                // Ktor 3: `provider` e um Function0<ByteReadChannel> (propriedade,
-                // getProvider() no bytecode). Tem que invocar com provider().
-                val canal = parte.provider()
-                val resto = canal.readRemaining()
-                bytes = resto.readText().toByteArray()
+                // NUNCA ler com readText(): decodifica os bytes como UTF-8 e
+                // troca sequencias invalidas por U+FFFD -> corrompe imagem,
+                // video, audio e qualquer binario. Ler em bruto.
+                bytes = runCatching {
+                    parte.provider().readRemaining().asInputStream().readBytes()
+                }.getOrNull() ?: ByteArray(0)
             }
             is PartData.FormItem -> campos[parte.name.orEmpty()] = parte.value
             else -> Unit
@@ -249,7 +250,9 @@ internal suspend fun ApplicationCall.upload(hub: Hub) {
     val msg = Mensagem(
         id = campos["id"]?.takeIf { it.isNotBlank() } ?: UUID.randomUUID().toString(),
         ts = System.currentTimeMillis() / 1000.0,
-        autor = campos["autor"]?.takeIf { it.isNotBlank() } ?: "android",
+        autor = campos["autor"]?.takeIf { it.isNotBlank() }
+            ?: campos["from"]?.takeIf { it.isNotBlank() }
+            ?: "android",
         tipo = campos["tipo"]?.takeIf { it.isNotBlank() } ?: "arquivo",
         texto = campos["texto"] ?: "",
         // o arquivo viaja como extra: o app le "arquivo" do mesmo objeto.

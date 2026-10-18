@@ -284,4 +284,38 @@ class InteropAppClientTest {
         assertEquals("redmi", info.get().getString("host"))
         s.disconnect(); s.close()
     }
+
+    /**
+     * O heartbeat do Engine.IO v4 e' do SERVIDOR: sem o "2" o cliente espera
+     * pingInterval + pingTimeout e aborta sozinho ("Server has stopped
+     * communicating"). Era isso que fazia app, bridge do Arch e overlay abrirem
+     * uma sessao nova a cada ~40s. As janelas aqui sao curtas (1s/0,5s) so pra
+     * provar em segundos o que no celular levava 45s -- o cliente le os dois
+     * valores do handshake, entao ele respeita a janela que o servidor anunciou.
+     */
+    @Test
+    fun `servidor manda ping e o cliente do app nao cai sozinho`() {
+        server.parar()
+        server = HubServer(hub, port = 0, pingIntervalMs = 1_000, pingTimeoutMs = 500).also { it.iniciar() }
+        porta = server.portaEfetiva()
+
+        logarJul()
+        val opts = IO.Options().apply {
+            auth = mapOf("token" to token)
+            reconnection = false
+        }
+        val s = IO.socket("http://127.0.0.1:$porta", opts)
+        val conectado = CountDownLatch(1)
+        val caiu = CountDownLatch(1)
+        s.on(Socket.EVENT_CONNECT) { conectado.countDown() }
+        s.on(Socket.EVENT_DISCONNECT) { caiu.countDown() }
+        s.connect()
+        assertTrue("cliente do app nao conectou", conectado.await(10, TimeUnit.SECONDS))
+
+        // 6x o ciclo do heartbeat: sem PING do servidor o cliente ja' teria
+        // abortado em 1,5s, e o EVENT_DISCONNECT abriria o latch
+        assertTrue("cliente caiu sozinho (o servidor nao mandou ping)", !caiu.await(6, TimeUnit.SECONDS))
+        assertTrue("cliente desconectou no fim do teste", s.connected())
+        s.disconnect(); s.close()
+    }
 }

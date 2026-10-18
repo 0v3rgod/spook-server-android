@@ -36,6 +36,19 @@ class Session(val engineSid: String, val remote: String) {
     var token: String? = null
         private set
 
+    /**
+     * Ultimo sinal de vida: pacote recebido OU um novo long-poll. O heartbeat
+     * usa isso pra saber se a sessao em polling morreu sem se despedir (o
+     * websocket avisa sozinho quando fecha, o polling nao).
+     */
+    @Volatile
+    var ultimaAtividade: Long = System.currentTimeMillis()
+        private set
+
+    fun marcarAtividade() {
+        ultimaAtividade = System.currentTimeMillis()
+    }
+
     fun send(packet: EngineIoPacket) = writer(packet)
 
     fun markHandshakeSent() {
